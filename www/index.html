@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>WebView App</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="main-content">
+    <h1>Hello World</h1>
+    <p>Bienvenido a la WebView App</p>
+    <button id="open-webview-btn">Abrir WebView</button>
+  </div>
+
+  <div id="webview-overlay" class="hidden">
+    <div id="webview-header">
+      <button id="close-webview-btn">✕ Cerrar</button>
+    </div>
+    <iframe id="webview-frame" src="about:blank"></iframe>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

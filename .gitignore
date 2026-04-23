@@ -1,0 +1,28 @@
+node_modules/
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/capacitor-cordova-android-plugins/build/
+
+# iOS build artifacts
+ios/App/Pods/
+ios/App/build/
+ios/App/output/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+*.apk
+*.aab
+*.ipa

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">WebView App</string>
+    <string name="title_activity_main">WebView App</string>
+    <string name="package_name">com.revfran.webviewapp</string>
+    <string name="custom_url_scheme">com.revfran.webviewapp</string>
+</resources>
