@@ -4,7 +4,6 @@ import android.os.Message;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.WebViewTransport;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebChromeClient;
 import com.getcapacitor.BridgeWebViewClient;
@@ -12,7 +11,7 @@ import com.getcapacitor.BridgeWebViewClient;
 public class MainActivity extends BridgeActivity {
 
     @Override
-    protected void onStart() {
+    public void onStart() {
         super.onStart();
         WebView webView = getBridge().getWebView();
         webView.getSettings().setSupportMultipleWindows(true);
@@ -70,7 +69,7 @@ public class MainActivity extends BridgeActivity {
                     return true;
                 }
             });
-            ((WebViewTransport) resultMsg.obj).setWebView(sink);
+            ((WebView.WebViewTransport) resultMsg.obj).setWebView(sink);
             resultMsg.sendToTarget();
             return true;
         }
