@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var currentUrl = WEBVIEW_URL;
 
   var backBtn = document.getElementById('back-btn');
+  var forwardBtn = document.getElementById('forward-btn');
   var shareBtn = document.getElementById('share-btn');
   var urlDisplay = document.getElementById('url-display');
   var iframe = document.getElementById('webview-frame');
@@ -24,6 +25,14 @@ document.addEventListener('DOMContentLoaded', function () {
   backBtn.addEventListener('click', function () {
     try {
       iframe.contentWindow.history.back();
+    } catch (e) {
+      // cross-origin fallback: nothing to do
+    }
+  });
+
+  forwardBtn.addEventListener('click', function () {
+    try {
+      iframe.contentWindow.history.forward();
     } catch (e) {
       // cross-origin fallback: nothing to do
     }
