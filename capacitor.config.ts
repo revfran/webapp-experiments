@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.revfran.webviewapp',
-  appName: 'WebView App',
+  appName: 'webexp',
   webDir: 'www',
   server: {
     allowNavigation: ['*'],

@@ -1,18 +1,39 @@
 document.addEventListener('DOMContentLoaded', function () {
   var WEBVIEW_URL = 'https://revfran.github.io/web-experiments/index.html';
+  var currentUrl = WEBVIEW_URL;
 
-  var openBtn = document.getElementById('open-webview-btn');
-  var closeBtn = document.getElementById('close-webview-btn');
-  var overlay = document.getElementById('webview-overlay');
+  var backBtn = document.getElementById('back-btn');
+  var shareBtn = document.getElementById('share-btn');
+  var urlDisplay = document.getElementById('url-display');
   var iframe = document.getElementById('webview-frame');
 
-  openBtn.addEventListener('click', function () {
-    iframe.src = WEBVIEW_URL;
-    overlay.classList.remove('hidden');
+  urlDisplay.textContent = WEBVIEW_URL;
+
+  iframe.addEventListener('load', function () {
+    try {
+      var href = iframe.contentWindow.location.href;
+      if (href && href !== 'about:blank') {
+        currentUrl = href;
+      }
+    } catch (e) {
+      // cross-origin page: keep last known URL
+    }
+    urlDisplay.textContent = currentUrl;
   });
 
-  closeBtn.addEventListener('click', function () {
-    overlay.classList.add('hidden');
-    iframe.src = 'about:blank';
+  backBtn.addEventListener('click', function () {
+    try {
+      iframe.contentWindow.history.back();
+    } catch (e) {
+      // cross-origin fallback: nothing to do
+    }
+  });
+
+  shareBtn.addEventListener('click', function () {
+    if (navigator.share) {
+      navigator.share({ url: currentUrl }).catch(function () {});
+    } else {
+      navigator.clipboard.writeText(currentUrl).catch(function () {});
+    }
   });
 });
