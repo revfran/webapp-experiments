@@ -1,34 +1,45 @@
 document.addEventListener('DOMContentLoaded', function () {
-  var WEBVIEW_URL = 'https://revfran.github.io/web-experiments/news.html';
-  var currentUrl = WEBVIEW_URL;
+  var HOME_URL  = 'https://revfran.github.io/web-experiments/index.html';
+  var NEWS_URL  = 'https://revfran.github.io/web-experiments/news.html';
+  var currentUrl = NEWS_URL;
   var navDepth = 0;
   var navDelta = 1;
+  var navigatingBack = false;
   var readerActive = false;
 
-  var backBtn = document.getElementById('back-btn');
-  var forwardBtn = document.getElementById('forward-btn');
-  var shareBtn = document.getElementById('share-btn');
-  var readerBtn = document.getElementById('reader-btn');
-  var urlDisplay = document.getElementById('url-display');
-  var iframe = document.getElementById('webview-frame');
-  var readerPane = document.getElementById('reader-pane');
+  var homeBtn      = document.getElementById('home-btn');
+  var shareBtn     = document.getElementById('share-btn');
+  var readerBtn    = document.getElementById('reader-btn');
+  var urlDisplay   = document.getElementById('url-display');
+  var iframe       = document.getElementById('webview-frame');
+  var readerPane   = document.getElementById('reader-pane');
   var readerUrlInput = document.getElementById('reader-url-input');
-  var readerLoadBtn = document.getElementById('reader-load-btn');
-  var readerArticle = document.getElementById('reader-article');
-  var readerLoading = document.getElementById('reader-loading');
+  var readerLoadBtn  = document.getElementById('reader-load-btn');
+  var readerArticle  = document.getElementById('reader-article');
+  var readerLoading  = document.getElementById('reader-loading');
 
-  urlDisplay.textContent = WEBVIEW_URL;
+  urlDisplay.textContent = NEWS_URL;
 
-  // Called by native Android code when it intercepts a navigation (frame-busting
-  // or target="_blank") and redirects it into the iframe, giving us the real URL.
+  // Called by native Android when it intercepts a frame-bust or target=_blank
+  // navigation and redirects it into the iframe, giving us the real article URL.
   window.onIframeUrlChange = function (url) {
     currentUrl = url;
     urlDisplay.textContent = url;
   };
 
   iframe.addEventListener('load', function () {
-    navDepth = Math.max(0, navDepth + navDelta);
-    navDelta = 1;
+    if (navigatingBack) {
+      navigatingBack = false;
+      navDepth = Math.max(0, navDepth - 1);
+    } else {
+      navDepth = Math.max(0, navDepth + navDelta);
+      navDelta = 1;
+      // Push a main-frame history entry so Android's back gesture can traverse it.
+      if (navDepth > 1) {
+        history.pushState({ navDepth: navDepth, url: currentUrl }, '');
+      }
+    }
+
     try {
       var href = iframe.contentWindow.location.href;
       if (href && href !== 'about:blank') {
@@ -38,18 +49,29 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (e) {
       // cross-origin: currentUrl already updated by onIframeUrlChange if native intercepted
     }
+
     readerBtn.style.display = navDepth > 1 ? 'flex' : 'none';
     if (readerActive) setReaderMode(false);
   });
 
-  backBtn.addEventListener('click', function () {
-    navDelta = -1;
-    try { iframe.contentWindow.history.back(); } catch (e) {}
+  // Android back button / swipe → webView.goBack() (native) → popstate fires here.
+  window.addEventListener('popstate', function () {
+    navigatingBack = true;
+    if (readerActive) setReaderMode(false);
+    try {
+      iframe.contentWindow.history.back();
+    } catch (e) {
+      navigatingBack = false;
+    }
   });
 
-  forwardBtn.addEventListener('click', function () {
+  homeBtn.addEventListener('click', function () {
+    if (readerActive) setReaderMode(false);
+    navDepth = 0;
     navDelta = 1;
-    try { iframe.contentWindow.history.forward(); } catch (e) {}
+    navigatingBack = false;
+    history.replaceState(null, '');
+    iframe.src = HOME_URL;
   });
 
   shareBtn.addEventListener('click', function () {

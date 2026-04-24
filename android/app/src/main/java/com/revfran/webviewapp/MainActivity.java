@@ -34,6 +34,16 @@ public class MainActivity extends BridgeActivity {
             "})('" + safe + "')", null));
     }
 
+    /** Native back button / swipe-back gesture: navigate the iframe back when possible. */
+    @Override
+    public void onBackPressed() {
+        if (getBridge().getWebView().canGoBack()) {
+            getBridge().getWebView().goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
     /** Blocks frame-busting: intercepts any attempt to navigate the main frame to an external URL. */
     private class FrameGuardClient extends BridgeWebViewClient {
         FrameGuardClient(com.getcapacitor.Bridge bridge) { super(bridge); }
