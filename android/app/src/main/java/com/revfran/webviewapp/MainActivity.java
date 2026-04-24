@@ -2,11 +2,21 @@ package com.revfran.webviewapp;
 
 import android.os.Message;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebChromeClient;
 import com.getcapacitor.BridgeWebViewClient;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 public class MainActivity extends BridgeActivity {
 
@@ -17,6 +27,16 @@ public class MainActivity extends BridgeActivity {
         webView.getSettings().setSupportMultipleWindows(true);
         webView.setWebViewClient(new FrameGuardClient(getBridge()));
         webView.setWebChromeClient(new WindowGuardClient(getBridge(), webView));
+    }
+
+    /** Native back button / swipe-back gesture: navigate the iframe back when possible. */
+    @Override
+    public void onBackPressed() {
+        if (getBridge().getWebView().canGoBack()) {
+            getBridge().getWebView().goBack();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     /** Redirects article URLs into the iframe instead of letting them take over the main WebView. */
@@ -34,20 +54,11 @@ public class MainActivity extends BridgeActivity {
             "})('" + safe + "')", null));
     }
 
-    /** Native back button / swipe-back gesture: navigate the iframe back when possible. */
-    @Override
-    public void onBackPressed() {
-        if (getBridge().getWebView().canGoBack()) {
-            getBridge().getWebView().goBack();
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    /** Blocks frame-busting: intercepts any attempt to navigate the main frame to an external URL. */
     private class FrameGuardClient extends BridgeWebViewClient {
         FrameGuardClient(com.getcapacitor.Bridge bridge) { super(bridge); }
 
+        /** Blocks frame-busting: any attempt to navigate the main frame to an external URL
+         *  is redirected into the iframe instead. */
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             String url = request.getUrl().toString();
@@ -58,6 +69,56 @@ public class MainActivity extends BridgeActivity {
                 return true;
             }
             return super.shouldOverrideUrlLoading(view, request);
+        }
+
+        /** Strips X-Frame-Options and CSP frame-ancestors from iframe HTML responses so that
+         *  sites like BBC (SAMEORIGIN) render normally instead of showing a black screen. */
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+            String accept = request.getRequestHeaders().get("Accept");
+            String scheme = request.getUrl().getScheme();
+            if (!request.isForMainFrame()
+                    && accept != null && accept.contains("text/html")
+                    && scheme != null && scheme.startsWith("http")) {
+                try {
+                    HttpURLConnection conn =
+                        (HttpURLConnection) new URL(request.getUrl().toString()).openConnection();
+                    conn.setInstanceFollowRedirects(true);
+                    conn.setConnectTimeout(10_000);
+                    conn.setReadTimeout(15_000);
+                    for (Map.Entry<String, String> h : request.getRequestHeaders().entrySet()) {
+                        conn.setRequestProperty(h.getKey(), h.getValue());
+                    }
+                    conn.connect();
+
+                    int status = conn.getResponseCode();
+                    String reason = conn.getResponseMessage();
+                    if (reason == null || reason.isEmpty()) reason = "OK";
+
+                    String rawContentType = conn.getContentType();
+                    if (rawContentType == null) rawContentType = "text/html; charset=utf-8";
+                    String mimeType = rawContentType.split(";")[0].trim();
+
+                    // Forward all response headers except the iframe-blocking ones.
+                    Map<String, String> headers = new HashMap<>();
+                    for (Map.Entry<String, List<String>> e : conn.getHeaderFields().entrySet()) {
+                        if (e.getKey() == null || e.getValue() == null || e.getValue().isEmpty()) continue;
+                        String key = e.getKey().toLowerCase();
+                        if (key.equals("x-frame-options")) continue;
+                        if (key.equals("content-security-policy")) continue;
+                        headers.put(e.getKey(), e.getValue().get(0));
+                    }
+
+                    InputStream stream = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
+                    if (stream == null) stream = new ByteArrayInputStream(new byte[0]);
+                    if ("gzip".equalsIgnoreCase(conn.getContentEncoding())) {
+                        stream = new GZIPInputStream(stream);
+                    }
+
+                    return new WebResourceResponse(mimeType, null, status, reason, headers, stream);
+                } catch (Exception ignored) {}
+            }
+            return super.shouldInterceptRequest(view, request);
         }
     }
 
